@@ -17,6 +17,21 @@ The goal is to forecast the size of the moves, not the direction of the rate.
 
 Then open `main.ipynb` and run all cells.
 
+## Data
+- Source: FRED, series DEXUSEU (US dollars to one euro, noon buying rates in New York).
+- Period: 2011-01-03 to 2025-12-31, daily, about 3,751 observations.
+- Snapshot downloaded on 2026-11-15 and saved in `data/raw/`.
+- Missing values (US holidays) are removed, not filled.
+- Returns: daily log-returns in percent,
+
+$$
+r_t = 100 \times \ln\left(\frac{P_t}{P_{t-1}}\right)
+$$
+
+where $P_t$ is the EUR/USD rate on trading day $t$.
+
+![Prices and returns](figures/01_prices_returns.png)
+
 ## Project status
 - [x] Project setup
 - [ ] Data and log-returns
