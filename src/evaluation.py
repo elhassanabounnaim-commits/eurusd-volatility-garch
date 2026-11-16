@@ -6,7 +6,7 @@ from scipy import stats
 from statsmodels.stats.diagnostic import acorr_ljungbox
 from statsmodels.tsa.stattools import adfuller, kpss
 import warnings
-
+from statsmodels.stats.diagnostic import het_arch
 
 def distribution_summary(x: pd.Series) -> pd.Series:
     """Moments of a series and Jarque-Bera normality test."""
@@ -40,4 +40,18 @@ def stationarity_tests(x: pd.Series) -> pd.Series:
         "adf_pvalue": adf_pvalue,
         "kpss_stat": kpss_stat,
         "kpss_pvalue": kpss_pvalue,
+    })
+
+def residual_diagnostics(z: pd.Series, lags: int = 10) -> pd.Series:
+    """Tests on standardized residuals. A well-specified model gives p-values above 0.05."""
+    lb_z = acorr_ljungbox(z, lags=[lags])
+    lb_z2 = acorr_ljungbox(z**2, lags=[lags])
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        _, arch_lm_pvalue, _, _ = het_arch(z, nlags=lags)
+    return pd.Series({
+        "lb_z_pvalue": lb_z["lb_pvalue"].iloc[0],
+        "lb_z2_pvalue": lb_z2["lb_pvalue"].iloc[0],
+        "arch_lm_pvalue": arch_lm_pvalue,
+        "excess_kurtosis": stats.kurtosis(z),
     })

@@ -95,10 +95,62 @@ on 2023-2025 (750 days):
 The conditional mean of EUR/USD returns is not predictable, consistent with market
 efficiency. The variance models below therefore use a constant mean.
 
+## Variance models: GARCH, GJR-GARCH, EGARCH
+Constant mean $r_t = \mu + \varepsilon_t$, with $\varepsilon_t = \sigma_t z_t$ and three variance equations:
+
+$$\text{GARCH(1,1)}: \quad \sigma_t^2 = \omega + \alpha\,\varepsilon_{t-1}^2 + \beta\,\sigma_{t-1}^2$$
+
+$$\text{GJR-GARCH}: \quad \sigma_t^2 = \omega + \big(\alpha + \gamma\,\mathbb{1}_{\{\varepsilon_{t-1}<0\}}\big)\,\varepsilon_{t-1}^2 + \beta\,\sigma_{t-1}^2$$
+
+$$\text{EGARCH}: \quad \ln\sigma_t^2 = \omega + \alpha\big(|z_{t-1}| - \mathbb{E}|z_{t-1}|\big) + \gamma\,z_{t-1} + \beta\,\ln\sigma_{t-1}^2$$
+
+each with normal and Student-t innovations, estimated by maximum likelihood on 2011-2025.
+
+| Model | Dist. | Log-lik | AIC | BIC | Persistence | Half-life (days) | $\gamma$ (p-value) | $\nu$ |
+|---|---|---|---|---|---|---|---|---|
+| GARCH | normal | -2563.0 | 5134.0 | 5158.9 | 0.993 | 105 | | |
+| GARCH | t | -2484.9 | 4979.9 | **5011.0** | 0.997 | 245 | | 6.8 |
+| GJR-GARCH | normal | -2560.7 | 5131.4 | 5162.5 | 0.994 | 121 | 0.015 (0.09) | |
+| GJR-GARCH | t | -2482.5 | **4976.9** | 5014.3 | 0.998 | 325 | 0.018 (0.02) | 6.8 |
+| EGARCH | normal | -2558.9 | 5127.8 | 5159.0 | 0.993 | 101 | -0.018 (0.04) | |
+| EGARCH | t | -2483.4 | 4978.8 | 5016.1 | 0.996 | 183 | -0.020 (0.01) | 6.9 |
+
+Persistence is $\alpha+\beta$ (GARCH), $\alpha+\gamma/2+\beta$ (GJR) or $\beta$ (EGARCH);
+half-life $= \ln 0.5 / \ln(\text{persistence})$. GARCH(1,1)-t estimates: $\alpha = 0.038$, $\beta = 0.959$.
+
+**Findings.**
+- **Fat tails:** Student-t innovations improve the log-likelihood by about 78 points with
+  $\nu \approx 6.8$. Residual excess kurtosis (about 1.9) is consistent with a Student-t
+  ($6/(\nu-4) \approx 2.1$), not with a normal (0).
+- **Persistence:** above 0.99, so volatility shocks last several months. Near 1, the
+  half-life and the long-run variance $\omega/(1-\alpha-\beta)$ are imprecise.
+- **Asymmetry:** small but significant in GJR and EGARCH: volatility rises more after a fall of the euro.
+- **Model choice:** AIC selects GJR-GARCH-t, BIC selects GARCH-t. The out-of-sample evaluation decides.
+
+### Diagnostics on standardized residuals (p-values, lag 10)
+
+| | Ljung-Box $\hat z_t$ | Ljung-Box $\hat z_t^2$ | ARCH-LM |
+|---|---|---|---|
+| No model (constant volatility) | 0.39 | < 0.001 | < 0.001 |
+| GARCH-t | 0.66 | 0.97 | 0.98 |
+| GJR-GARCH-t | 0.62 | 0.95 | 0.96 |
+| EGARCH-t | 0.58 | 0.79 | 0.81 |
+
+All models remove the volatility clustering. The QQ-plots show that normal residuals
+keep fat tails, while the Student-t fits them.
+
+![QQ-plots of residuals](figures/04_qq_residuals.png)
+
+The conditional volatility ranges from about 0.25% to 1% per day. It rises quickly after
+shocks (Covid, March 2020) and decays slowly, following the main stress periods
+(2011-2012, 2015, 2020, 2022).
+
+![Conditional volatility](figures/05_conditional_vol.png)
+
 ## Project status
 - [x] Project setup
 - [x] Data and log-returns
 - [x] Stylized facts and stationarity
 - [x] Mean model (ARIMA vs random walk)
-- [ ] Variance models (GARCH, GJR, EGARCH) and diagnostics
+- [x] Variance models (GARCH, GJR, EGARCH) and diagnostics
 - [ ] Out-of-sample forecasting and evaluation
