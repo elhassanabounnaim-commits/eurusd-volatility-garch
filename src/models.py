@@ -59,3 +59,31 @@ def persistence(res, model: str) -> float:
 def half_life(pers: float) -> float:
     """Number of days for the effect of a shock to decrease by half."""
     return np.log(0.5) / np.log(pers)
+
+def ewma_variance(y: pd.Series, lam: float = 0.94) -> pd.Series:
+    """RiskMetrics EWMA variance forecast for each day, using data up to the day before."""
+    return (y**2).ewm(alpha=1 - lam, adjust=False).mean().shift(1)
+
+
+def historical_variance(y: pd.Series, window: int = 20) -> pd.Series:
+    """Mean of the last `window` squared returns, using data up to the day before."""
+    return (y**2).rolling(window).mean().shift(1)
+
+
+def rolling_garch_forecast(y: pd.Series, model: str, dist: str,
+                           window: int, start: int) -> pd.Series:
+    """One-day-ahead variance forecasts with a rolling estimation window.
+
+    For each day t >= start, the model is fitted on days t-window to t-1
+    and forecasts the variance of day t.
+    """
+    forecasts, params = {}, None
+    for t in range(start, len(y)):
+        am = arch_model(y.iloc[t - window:t], mean="Constant", dist=dist,
+                        rescale=False, **GARCH_SPECS[model])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            res = am.fit(disp="off", starting_values=params)
+        params = res.params  # warm start for the next day
+        forecasts[y.index[t]] = res.forecast(horizon=1, reindex=False).variance.iloc[-1, 0]
+    return pd.Series(forecasts, name=f"{model}-{dist}")

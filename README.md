@@ -3,6 +3,17 @@
 Forecasting the daily volatility of EUR/USD with GARCH-family models,
 compared with EWMA (RiskMetrics) and 20-day historical volatility.
 
+## Summary
+- **Data:** 15 years of daily EUR/USD (FRED DEXUSEU, 2011-2025), 3,750 log-returns.
+- **Stylized facts:** fat tails (excess kurtosis 2.05, Jarque-Bera p < 0.001), no autocorrelation
+  in returns but strong autocorrelation in squared returns (volatility clustering).
+- **Mean:** no ARMA model beats the random walk (AIC, BIC and out-of-sample RMSE).
+- **Variance:** GARCH-family models with Student-t innovations ($\nu \approx 6.8$) fit best;
+  persistence above 0.99; small but significant asymmetry; all residual tests pass.
+- **Forecasting (2023-2025):** GARCH-family models have the lowest QLIKE and MSE, but their
+  gain over EWMA (about 1% in MSE) is not significant; both significantly beat 20-day
+  historical volatility.
+
 ## Research question
 For a risk manager, the key input is tomorrow's volatility. It is not
 observable and it changes over time. This project asks: can GARCH-family
@@ -147,10 +158,77 @@ shocks (Covid, March 2020) and decays slowly, following the main stress periods
 
 ![Conditional volatility](figures/05_conditional_vol.png)
 
+## Out-of-sample evaluation
+**Setup.** For each day of 2023-2025 (750 days), each Student-t model is re-estimated on the
+previous 3,000 days and forecasts the next day's variance. Benchmarks:
+
+$$\text{EWMA}: \ \hat\sigma_t^2 = \lambda\,\hat\sigma_{t-1}^2 + (1-\lambda)\,r_{t-1}^2, \ \lambda = 0.94
+\qquad \text{HV20}: \ \hat\sigma_t^2 = \frac{1}{20}\sum_{i=1}^{20} r_{t-i}^2$$
+
+Forecasts $h_t$ are compared with the proxy $r_t^2$, which is unbiased but noisy, using
+
+$$\text{MSE}_t = (r_t^2 - h_t)^2, \qquad \text{QLIKE}_t = \ln h_t + \frac{r_t^2}{h_t}$$
+
+Both losses rank models consistently with a noisy proxy (Patton, 2011). QLIKE is the main
+criterion: it is less sensitive to extreme days and penalizes underestimation more.
+Differences are tested with Diebold-Mariano (Newey-West standard errors).
+
+| Model | QLIKE | QLIKE - EWMA | MSE / EWMA |
+|---|---|---|---|
+| GJR-GARCH-t | -0.6286 | -0.0194 | 0.990 |
+| EGARCH-t | -0.6274 | -0.0182 | 0.993 |
+| GARCH-t | -0.6269 | -0.0177 | 0.994 |
+| EWMA | -0.6092 | 0 | 1 |
+| HV20 | -0.5157 | +0.0935 | 1.049 |
+
+| Diebold-Mariano | QLIKE stat (p-value) | MSE stat (p-value) |
+|---|---|---|
+| GARCH-t vs EWMA | -1.24 (0.22) | -1.32 (0.19) |
+| GJR-GARCH-t vs EWMA | -1.41 (0.16) | -1.55 (0.12) |
+| EGARCH-t vs EWMA | -1.07 (0.28) | -0.79 (0.43) |
+| GARCH-t vs HV20 | -2.79 (0.005) | -3.14 (0.002) |
+| GJR-GARCH-t vs HV20 | -2.92 (0.003) | -3.44 (0.001) |
+| EGARCH-t vs HV20 | -2.79 (0.005) | -3.26 (0.001) |
+| HV20 vs EWMA | +3.14 (0.002) | +3.24 (0.001) |
+
+A negative statistic means the first model is more accurate.
+
+**Result.** The ranking is the same for both losses: GARCH-family models < EWMA < HV20.
+The GARCH models reduce the MSE by about 1% relative to EWMA, but the difference is not
+significant (p-values 0.12 to 0.43). This is consistent with the estimated persistence
+(0.997), very close to EWMA's implicit value of 1: at a one-day horizon, the two models
+are nearly identical. The small gain comes from mean reversion: in calm periods EWMA falls
+lower (minimum forecast 0.062 vs 0.090 for GARCH-t) and underestimates volatility.
+Both GARCH and EWMA significantly outperform 20-day historical volatility.
+
+![Forecasts](figures/06_forecasts.png)
+
+
+## Conclusion
+EUR/USD daily returns are unpredictable in direction but not in size: volatility clusters,
+moves in long regimes (persistence above 0.99), and has fat tails that a time-varying
+volatility alone does not explain, so Student-t innovations are needed.
+
+Out of sample, GARCH-type models give the best one-day volatility forecasts, but their
+advantage over EWMA is small and not statistically significant. This is consistent with
+the estimated persistence close to 1: at a one-day horizon, GARCH(1,1) and EWMA are very
+similar models. GARCH adds estimated parameters and mean reversion toward a long-run level,
+which protect against underestimating volatility in calm periods and matter more at
+longer horizons. Both clearly outperform 20-day historical volatility.
+
+## Limitations and extensions
+- **Noisy proxy:** daily squared returns are a very noisy measure of true variance.
+  Realized volatility from intraday data would give a sharper evaluation.
+- **One horizon, one asset, one test period:** results are for one-day forecasts of
+  EUR/USD on 2023-2025, a relatively calm period.
+- **Persistence close to 1:** the half-life and the long-run variance are imprecise.
+- **Extensions:** multi-day forecast horizons, VaR forecasts with backtesting
+  (Kupiec and Christoffersen tests), other currency pairs, realized-volatility models.
+
 ## Project status
 - [x] Project setup
 - [x] Data and log-returns
 - [x] Stylized facts and stationarity
 - [x] Mean model (ARIMA vs random walk)
 - [x] Variance models (GARCH, GJR, EGARCH) and diagnostics
-- [ ] Out-of-sample forecasting and evaluation
+- [x] Out-of-sample forecasting and evaluation

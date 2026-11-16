@@ -7,6 +7,8 @@ from statsmodels.stats.diagnostic import acorr_ljungbox
 from statsmodels.tsa.stattools import adfuller, kpss
 import warnings
 from statsmodels.stats.diagnostic import het_arch
+import numpy as np
+import statsmodels.api as sm
 
 def distribution_summary(x: pd.Series) -> pd.Series:
     """Moments of a series and Jarque-Bera normality test."""
@@ -55,3 +57,23 @@ def residual_diagnostics(z: pd.Series, lags: int = 10) -> pd.Series:
         "arch_lm_pvalue": arch_lm_pvalue,
         "excess_kurtosis": stats.kurtosis(z),
     })
+
+def mse_loss(proxy: pd.Series, forecast: pd.Series) -> pd.Series:
+    """Squared error between the variance proxy and the forecast."""
+    return (proxy - forecast) ** 2
+
+
+def qlike_loss(proxy: pd.Series, forecast: pd.Series) -> pd.Series:
+    """QLIKE loss: log(h) + r^2 / h. Lower is better."""
+    return np.log(forecast) + proxy / forecast
+
+
+def diebold_mariano(loss_a: pd.Series, loss_b: pd.Series, maxlags: int = 5) -> pd.Series:
+    """Diebold-Mariano test of equal predictive accuracy (H0: E[loss_a - loss_b] = 0).
+
+    The loss difference is regressed on a constant with Newey-West (HAC)
+    standard errors. A negative statistic means that model A is more accurate.
+    """
+    d = (loss_a - loss_b).to_numpy()
+    res = sm.OLS(d, np.ones_like(d)).fit(cov_type="HAC", cov_kwds={"maxlags": maxlags})
+    return pd.Series({"dm_stat": res.tvalues[0], "p_value": res.pvalues[0]})
