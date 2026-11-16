@@ -74,10 +74,31 @@ ADF ($H_0$: unit root) and KPSS ($H_0$: stationarity) give consistent conclusion
 The log price behaves like a random walk, so the models are fitted on log-returns.
 (KPSS p-values are bounded to [0.01, 0.10] by the test's lookup table.)
 
+## Mean model: ARIMA vs random walk
+Log-returns are stationary, so ARMA(p, q) models with a constant were fitted on them
+(equivalent to ARIMA(p, 1, q) on log prices), for $p, q \in \{0, 1, 2, 3\}$.
+The random walk corresponds to ARMA(0, 0): $r_t = \mu + \varepsilon_t$.
+
+**Information criteria.** Both AIC and BIC select ARMA(0, 0). No model improves on it:
+the smallest difference is $\Delta \text{AIC} = +0.48$ for ARMA(2, 2).
+The constant is not significant ($\hat\mu = -0.0035$, p-value 0.68).
+
+**Out-of-sample test.** Parameters estimated on 2011-2022, one-step-ahead forecasts
+on 2023-2025 (750 days):
+
+| Model | RMSE | Ratio vs random walk |
+|---|---|---|
+| Random walk ($\hat r_t = 0$) | 0.4540 | 1.0000 |
+| Constant mean | 0.4543 | 1.0006 |
+| ARMA(1, 1) | 0.4546 | 1.0012 |
+
+The conditional mean of EUR/USD returns is not predictable, consistent with market
+efficiency. The variance models below therefore use a constant mean.
+
 ## Project status
 - [x] Project setup
 - [x] Data and log-returns
-- [ ] Stylized facts and stationarity
-- [ ] Mean model (ARIMA vs random walk)
+- [x] Stylized facts and stationarity
+- [x] Mean model (ARIMA vs random walk)
 - [ ] Variance models (GARCH, GJR, EGARCH) and diagnostics
 - [ ] Out-of-sample forecasting and evaluation
